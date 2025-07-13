@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>[BETA] Flight Computer v1.0</title>
+    <style>
+      body {
+        background-color: #000;
+        color: #fff;
+        font-family: Courier New, sans-serif;
+      }
+      .header-contents {
+        background-color: #555;
+        color: #7880D7;
+        text-align: center;
+      }
+      .fc-general-controls-masterthrottle input {
+        width: 50%;
+        height: 25px;
+        background-color: #7880D7;
+        outline: none;
+      }
+      .fc-general-controls-masterthrottle button {
+        margin: 5%;
+        padding: 7.5px;
+        border: 2px solid #FF0000;
+        border-radius: 7px;
+      }
+      .fc-general-controls-joystick-container {
+        width: 150px;
+        height: 150px;
+        background: #222;
+        border: 2px solid #555;
+        border-radius: 50%;
+        position: relative;
+        touch-action: none;
+        margin: 20px 0;
+      }
+      .fc-general-controls-joystick {
+        width: 50px;
+        height: 50px;
+        background: #7880D7;
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: transform 0.1s ease-out;
+      }
+      .fc-general-controls-gear button {
+        margin-left: 45%;
+        margin-top: 5px;
+        padding: 3px;
+        background-color: #00FF04;
+        border: 2px solid #FFFFFF;
+        color: #000000;
+      }
+      .fc-general-controls-flaps input {
+        width: 50%;
+        height: 25px;
+        background-color: #FFFA42;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-contents">
+        <h1>FLIGHT COMPUTER</h1>
+      </div>
+    </header>
+    <main>
+      <div class="body-contents">
+        <div class="fc-general">
+          <h2>General</h2>
+          <p><b>Speed:</b> <br> <span id="fc-general-speed">0</span> kts</p>
+          <p><b>Altitude:</b> <br> <span id="fc-general-altitude">0</span> ft</p>
+          <p><b>Vertical Speed:</b> <br> <span id="fc-general-vspeed">0</span> fpm</p>
+          <p><b>Pitch:</b> <br> <span id="fc-general-pitch">0</span> °</p>
+          <p><b>Bank:</b> <br> <span id="fc-general-bank">0</span> °</p>
+          <p><b>Gear:</b> <br> <span id="fc-general-gear">DOWN</span></p>
+          <p><b>Flaps:</b> <br> <span id="fc-general-flaps">0</span></p>
+          <div class="fc-general-controls">
+            <div class="fc-general-controls-masterthrottle">
+              <input type="range" min="-100" max="100" id="fc-general-controls-masterthrottle">
+              <p><b>Throttle:</b> <span id="fc-general-controls-masterthrottle-throttle">0</span>%</p>
+              <button onclick="revthrust()">Reverse Thrust</button>
+              <button onclick="idlethrust()">Idle</button>
+              <button onclick="maxthrust()">Max Thrust</button>
+            </div>
+            <div class="fc-general-controls-joystick-container" id="joystickContainer">
+              <div class="fc-general-controls-joystick" id="joystick"></div>
+            </div>
+            <div class="fc-general-controls-gear">
+              <button onclick="toggleGear();">Gear</button>
+            </div>
+            <div class="fc-general-controls-flaps">
+              <input type="range" min="0" max="4" id="fc-general-controls-flaps-slider">
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      let speed = 0;
+      let altitude = 0;
+      let vspeed = 0;
+      let pitch = 0;
+      let bank = 0;
+      let throttle = 0;
+      let gear = "DOWN";
+      let flaps = 0;
+
+      const speedDisplay = document.getElementById("fc-general-speed");
+      const altitudeDisplay = document.getElementById("fc-general-altitude");
+      const vspeedDisplay = document.getElementById("fc-general-vspeed");
+      const pitchDisplay = document.getElementById("fc-general-pitch");
+      const bankDisplay = document.getElementById("fc-general-bank");
+      const gearDisplay = document.getElementById("fc-general-gear");
+      const flapsDisplay = document.getElementById("fc-general-flaps");
+
+      function updateInfo() {
+        speedDisplay.textContent = Math.round(speed);
+        altitudeDisplay.textContent = Math.round(altitude);
+        vspeedDisplay.textContent = Math.round(vspeed);
+        pitchDisplay.textContent = pitch;
+        bankDisplay.textContent = bank;
+        gearDisplay.textContent = gear;
+        flapsDisplay.textContent = flaps;
+      }
+
+      setInterval(() => {
+        speed += throttle / 150;
+        if (speed < 0) speed = 0;
+
+        vspeed = pitch * 50; // Simple pitch-to-vspeed mapping
+        altitude += vspeed / 60; // Update altitude per second
+
+        if (altitude < 0) altitude = 0;
+
+        updateInfo();
+      }, 100);
+
+      const throttleSlider = document.getElementById("fc-general-controls-masterthrottle");
+      const throttleReading = document.getElementById("fc-general-controls-masterthrottle-throttle");
+
+      throttleSlider.addEventListener("input", () => {
+        throttle = parseInt(throttleSlider.value);
+        throttleReading.textContent = throttle;
+      });
+
+      function revthrust() {
+        throttle = -100;
+        throttleSlider.value = -100;
+        throttleReading.textContent = -100;
+      }
+
+      function idlethrust() {
+        throttle = 0;
+        throttleSlider.value = 0;
+        throttleReading.textContent = 0;
+      }
+
+      function maxthrust() {
+        throttle = 100;
+        throttleSlider.value = 100;
+        throttleReading.textContent = 100;
+      }
+
+      // Joystick logic
+      const joystick = document.getElementById("joystick");
+      const container = document.getElementById("joystickContainer");
+
+      let dragging = false;
+
+      container.addEventListener("mousedown", e => { dragging = true; });
+      container.addEventListener("touchstart", e => { dragging = true; });
+
+      window.addEventListener("mouseup", () => { dragging = false; });
+      window.addEventListener("touchend", () => { dragging = false; });
+
+      window.addEventListener("mousemove", drag);
+      window.addEventListener("touchmove", drag);
+
+      function drag(e) {
+        if (!dragging) return;
+
+        const rect = container.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        let x = clientX - rect.left - rect.width / 2;
+        let y = clientY - rect.top - rect.height / 2;
+
+        const maxRadius = rect.width / 2 - joystick.offsetWidth / 2;
+        const distance = Math.sqrt(x * x + y * y);
+        if (distance > maxRadius) {
+          const angle = Math.atan2(y, x);
+          x = Math.cos(angle) * maxRadius;
+          y = Math.sin(angle) * maxRadius;
+        }
+
+        joystick.style.transform = `translate(${x}px, ${y}px)`;
+
+        bank = Math.round((x / maxRadius) * 90);
+        pitch = Math.round((-y / maxRadius) * 45); // -45 to 45 degrees
+
+        updateInfo();
+      }
+      
+      const gearReading = document.getElementById("fc-general-controls-gear");
+      
+      function toggleGear() {
+        if (altitude > 0) {
+          if (gear == "DOWN") {
+            gear = "UP";
+          } else {
+            gear = "DOWN";
+          }
+        }
+        
+        updateInfo();
+      }
+      
+      const flapsSlider = document.getElementById("fc-general-controls-flaps-slider");
+      
+      flapsSlider.addEventListener("input", () => {
+        const flapsReading = parseInt(flapsSlider.value);
+        flaps = flapsReading;
+        
+        updateInfo();
+      });
+    </script>
+  </body>
+</html>
