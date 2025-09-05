@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a1a" stroke="#00ff41" stroke-width="8"/>
+  
+  <!-- Aircraft symbol -->
+  <g transform="translate(256, 256)">
+    <!-- Fuselage -->
+    <rect x="-4" y="-80" width="8" height="160" fill="#00ff41"/>
+    <!-- Wings -->
+    <rect x="-60" y="-6" width="120" height="12" fill="#00ff41"/>
+    <!-- Tail -->
+    <rect x="-20" y="-80" width="40" height="8" fill="#00ff41"/>
+  </g>
+  
+  <!-- Attitude indicator horizon -->
+  <rect x="100" y="246" width="312" height="20" fill="#8B4513" opacity="0.7"/>
+  <rect x="100" y="226" width="312" height="20" fill="#4169E1" opacity="0.7"/>
+  
+  <!-- Speed tape -->
+  <rect x="50" y="150" width="30" height="212" fill="#000000" stroke="#00ff41" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Altitude tape -->
+  <rect x="432" y="150" width="30" height="212" fill="#000000" stroke="#00ff41" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Heading indicator -->
+  <circle cx="256" cy="400" r="40" fill="none" stroke="#00ff41" stroke-width="3"/>
+  <text x="256" y="408" text-anchor="middle" fill="#00ff41" font-family="monospace" font-size="16" font-weight="bold">N</text>
+  
+  <!-- Title text -->
+  <text x="256" y="80" text-anchor="middle" fill="#00ff41" font-family="monospace" font-size="18" font-weight="bold">FLIGHT</text>
+  <text x="256" y="105" text-anchor="middle" fill="#00ff41" font-family="monospace" font-size="18" font-weight="bold">COMPUTER</text>
+</svg>
