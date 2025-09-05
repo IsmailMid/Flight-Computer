@@ -1,237 +1,1226 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>[BETA] Flight Computer v1.0</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Computer Simulator v0.1.0 Pre-Release Beta</title>
+    <link rel="icon" type="image/svg" href="Assets/icon.svg">
     <style>
-      body {
-        background-color: #000;
-        color: #fff;
-        font-family: Courier New, sans-serif;
-      }
-      .header-contents {
-        background-color: #555;
-        color: #7880D7;
-        text-align: center;
-      }
-      .fc-general-controls-masterthrottle input {
-        width: 50%;
-        height: 25px;
-        background-color: #7880D7;
-        outline: none;
-      }
-      .fc-general-controls-masterthrottle button {
-        margin: 5%;
-        padding: 7.5px;
-        border: 2px solid #FF0000;
-        border-radius: 7px;
-      }
-      .fc-general-controls-joystick-container {
-        width: 150px;
-        height: 150px;
-        background: #222;
-        border: 2px solid #555;
-        border-radius: 50%;
-        position: relative;
-        touch-action: none;
-        margin: 20px 0;
-      }
-      .fc-general-controls-joystick {
-        width: 50px;
-        height: 50px;
-        background: #7880D7;
-        border-radius: 50%;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        transition: transform 0.1s ease-out;
-      }
-      .fc-general-controls-gear button {
-        margin-left: 45%;
-        margin-top: 5px;
-        padding: 3px;
-        background-color: #00FF04;
-        border: 2px solid #FFFFFF;
-        color: #000000;
-      }
-      .fc-general-controls-flaps input {
-        width: 50%;
-        height: 25px;
-        background-color: #FFFA42;
-        outline: none;
-      }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #111111;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .cockpit-container {
+            width: 100%;
+            height: 100vh;
+            background: #1a1a1a;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: 1fr auto;
+            gap: 16px;
+        }
+
+        .instrument-panel {
+            background: #000000;
+            border: 1px solid #666666;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pfd { grid-column: span 4; }
+        .nd { grid-column: span 4; }
+        .eicas { grid-column: span 4; }
+
+        .control-panels {
+            grid-column: span 12;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            height: 250px;
+        }
+
+        .control-panel {
+            background: #1a1a1a;
+            border: 2px solid;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .fmc { border-color: #00ff00; }
+        .radio { border-color: #00ffff; }
+        .controls { border-color: #0080ff; }
+        .warnings { border-color: #ffff00; }
+
+        .panel-header {
+            color: #00ff00;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        .instrument-header {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            color: #00ff00;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .attitude-indicator {
+            position: absolute;
+            left: 80px;
+            right: 80px;
+            top: 48px;
+            bottom: 80px;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .sky {
+            background: linear-gradient(to bottom, #4a90e2, #87ceeb);
+            height: 50%;
+            position: relative;
+        }
+
+        .ground {
+            background: linear-gradient(to bottom, #8b4513, #654321);
+            height: 50%;
+            position: relative;
+        }
+
+        .horizon-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .aircraft-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+
+        .aircraft-wings {
+            width: 60px;
+            height: 3px;
+            background: #ffff00;
+            position: relative;
+        }
+
+        .aircraft-wings::before,
+        .aircraft-wings::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 3px;
+            background: #ffff00;
+        }
+
+        .aircraft-wings::before { left: -25px; }
+        .aircraft-wings::after { right: -25px; }
+
+        .aircraft-nose {
+            width: 3px;
+            height: 16px;
+            background: #ffff00;
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+        }
+
+        .speed-tape, .altitude-tape {
+            position: absolute;
+            top: 48px;
+            bottom: 64px;
+            width: 64px;
+            background: #1a1a1a;
+            border: 1px solid #666666;
+            overflow: hidden;
+        }
+
+        .speed-tape { left: 8px; }
+        .altitude-tape { right: 8px; }
+
+        .tape-window {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: #000000;
+            border: 2px solid #00ff00;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff00;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .heading-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            height: 48px;
+            background: #000000;
+            border: 1px solid #666666;
+            border-radius: 4px;
+        }
+
+        .nav-compass {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            position: relative;
+        }
+
+        .compass-rose {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 360px;
+            height: 360px;
+            border: 2px solid #004400;
+            border-radius: 50%;
+        }
+
+        .compass-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px;
+            height: 240px;
+            border: 1px solid #004400;
+            border-radius: 50%;
+        }
+
+        .aircraft-nav-symbol {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 16px solid #ffff00;
+        }
+
+        .engine-gauge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .gauge-label {
+            color: #00ff00;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .gauge-bar {
+            width: 24px;
+            height: 80px;
+            background: #333333;
+            border: 1px solid #666666;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            transition: height 0.3s ease;
+        }
+
+        .gauge-value {
+            color: #ffffff;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .gauge-unit {
+            color: #cccccc;
+            font-size: 8px;
+        }
+
+        .button {
+            background: #444444;
+            border: 1px solid #666666;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .button:hover {
+            background: #555555;
+        }
+
+        .button.active {
+            background: #00aa00;
+            border-color: #00ff00;
+        }
+
+        .button.warning {
+            background: #cc6600;
+            border-color: #ff8800;
+        }
+
+        .frequency-display {
+            background: #000000;
+            border: 1px solid #666666;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .frequency-active {
+            color: #ffffff;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .frequency-standby {
+            color: #00ffff;
+            font-size: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .controls-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+
+        .nav-data {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .nav-data-item {
+            color: #ffffff;
+            font-size: 10px;
+        }
+
+        .nav-data-label {
+            color: #00ff00;
+            font-size: 8px;
+            margin-bottom: 2px;
+        }
+
+        .flight-data {
+            position: absolute;
+            bottom: 64px;
+            left: 80px;
+            right: 80px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .flight-data-item {
+            color: #ffffff;
+            font-size: 10px;
+        }
+
+        .flight-data-label {
+            color: #00ff00;
+            font-size: 8px;
+            margin-bottom: 2px;
+        }
+
+        .engine-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .fuel-display {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .fuel-item {
+            color: #ffffff;
+            font-size: 10px;
+        }
+
+        .fuel-label {
+            color: #00ff00;
+            font-size: 8px;
+            margin-bottom: 4px;
+        }
+
+        .controls-info {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #cccccc;
+            max-width: 200px;
+        }
+
+        .status-indicators {
+            position: absolute;
+            top: 64px;
+            left: 80px;
+            right: 80px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            padding: 4px 8px;
+            font-size: 8px;
+            border-radius: 2px;
+        }
+
+        .status-indicator.active {
+            background: #00aa00;
+            color: #ffffff;
+        }
+
+        .status-indicator.inactive {
+            background: #666666;
+            color: #cccccc;
+        }
     </style>
-  </head>
-  <body>
-    <header>
-      <div class="header-contents">
-        <h1>FLIGHT COMPUTER</h1>
-      </div>
-    </header>
-    <main>
-      <div class="body-contents">
-        <div class="fc-general">
-          <h2>General</h2>
-          <p><b>Speed:</b> <br> <span id="fc-general-speed">0</span> kts</p>
-          <p><b>Altitude:</b> <br> <span id="fc-general-altitude">0</span> ft</p>
-          <p><b>Vertical Speed:</b> <br> <span id="fc-general-vspeed">0</span> fpm</p>
-          <p><b>Pitch:</b> <br> <span id="fc-general-pitch">0</span> °</p>
-          <p><b>Bank:</b> <br> <span id="fc-general-bank">0</span> °</p>
-          <p><b>Gear:</b> <br> <span id="fc-general-gear">DOWN</span></p>
-          <p><b>Flaps:</b> <br> <span id="fc-general-flaps">0</span></p>
-          <div class="fc-general-controls">
-            <div class="fc-general-controls-masterthrottle">
-              <input type="range" min="-100" max="100" id="fc-general-controls-masterthrottle">
-              <p><b>Throttle:</b> <span id="fc-general-controls-masterthrottle-throttle">0</span>%</p>
-              <button onclick="revthrust()">Reverse Thrust</button>
-              <button onclick="idlethrust()">Idle</button>
-              <button onclick="maxthrust()">Max Thrust</button>
+</head>
+<body>
+    <div class="cockpit-container">
+        <!-- Primary Flight Display -->
+        <div class="instrument-panel pfd">
+            <div class="instrument-header">
+                <span>PFD</span>
+                <span id="current-time"></span>
             </div>
-            <div class="fc-general-controls-joystick-container" id="joystickContainer">
-              <div class="fc-general-controls-joystick" id="joystick"></div>
+            
+            <!-- Speed Tape -->
+            <div class="speed-tape">
+                <div class="tape-window" id="speed-display">0</div>
             </div>
-            <div class="fc-general-controls-gear">
-              <button onclick="toggleGear();">Gear</button>
+            
+            <!-- Altitude Tape -->
+            <div class="altitude-tape">
+                <div class="tape-window" id="altitude-display">1000</div>
             </div>
-            <div class="fc-general-controls-flaps">
-              <input type="range" min="0" max="4" id="fc-general-controls-flaps-slider">
+            
+            <!-- Attitude Indicator -->
+            <div class="attitude-indicator" id="attitude-indicator">
+                <div class="sky" id="sky"></div>
+                <div class="horizon-line"></div>
+                <div class="ground" id="ground"></div>
+                <div class="aircraft-symbol">
+                    <div class="aircraft-wings">
+                        <div class="aircraft-nose"></div>
+                    </div>
+                </div>
             </div>
-          </div>
+            
+            <!-- Status Indicators -->
+            <div class="status-indicators">
+                <div class="status-indicator" id="ap-indicator">AP</div>
+                <div class="status-indicator" id="alt-indicator">ALT</div>
+                <div class="status-indicator" id="hdg-indicator">HDG</div>
+            </div>
+            
+            <!-- Flight Data Readouts -->
+            <div class="flight-data">
+                <div class="flight-data-item">
+                    <div class="flight-data-label">IAS</div>
+                    <div id="ias-readout">0 KT</div>
+                </div>
+                <div class="flight-data-item">
+                    <div class="flight-data-label">ALT</div>
+                    <div id="alt-readout">1000 FT</div>
+                </div>
+                <div class="flight-data-item">
+                    <div class="flight-data-label">VS</div>
+                    <div id="vs-readout">0 FPM</div>
+                </div>
+            </div>
+            
+            <!-- Heading Indicator -->
+            <div class="heading-indicator">
+                <div style="position: relative; height: 24px; background: #000; border: 1px solid #00ff00; border-radius: 4px; margin: 4px;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00ff00; font-size: 10px;" id="heading-display">360°</div>
+                </div>
+            </div>
         </div>
-      </div>
-    </main>
+        
+        <!-- Navigation Display -->
+        <div class="instrument-panel nd">
+            <div class="instrument-header">
+                <span>ND</span>
+                <span>Range: <span id="nav-range">40</span> NM</span>
+            </div>
+            
+            <div class="nav-compass">
+                <div class="compass-rose"></div>
+                <div class="compass-inner"></div>
+                <div class="aircraft-nav-symbol"></div>
+            </div>
+            
+            <div class="nav-data">
+                <div class="nav-data-item">
+                    <div class="nav-data-label">HDG</div>
+                    <div id="nav-heading">360°</div>
+                </div>
+                <div class="nav-data-item">
+                    <div class="nav-data-label">TRK</div>
+                    <div id="nav-track">360°</div>
+                </div>
+                <div class="nav-data-item">
+                    <div class="nav-data-label">GS</div>
+                    <div id="nav-groundspeed">0 KT</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Engine Display -->
+        <div class="instrument-panel eicas">
+            <div class="instrument-header">
+                <span>ENGINE</span>
+                <span id="engine-status">STOP</span>
+            </div>
+            
+            <div style="padding: 48px 16px 16px;">
+                <div class="engine-grid">
+                    <div class="engine-gauge">
+                        <div class="gauge-label">RPM</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="rpm-fill" style="background: #00ff00; height: 0%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="rpm-value">0</span> <span class="gauge-unit">RPM</span></div>
+                    </div>
+                    
+                    <div class="engine-gauge">
+                        <div class="gauge-label">MP</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="mp-fill" style="background: #00ff00; height: 0%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="mp-value">30</span> <span class="gauge-unit">HG</span></div>
+                    </div>
+                    
+                    <div class="engine-gauge">
+                        <div class="gauge-label">CHT</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="cht-fill" style="background: #00ff00; height: 40%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="cht-value">200</span> <span class="gauge-unit">°F</span></div>
+                    </div>
+                    
+                    <div class="engine-gauge">
+                        <div class="gauge-label">EGT</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="egt-fill" style="background: #00ff00; height: 75%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="egt-value">1200</span> <span class="gauge-unit">°F</span></div>
+                    </div>
+                    
+                    <div class="engine-gauge">
+                        <div class="gauge-label">FUEL</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="fuel-fill" style="background: #00ff00; height: 0%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="fuel-value">0</span> <span class="gauge-unit">GPH</span></div>
+                    </div>
+                    
+                    <div class="engine-gauge">
+                        <div class="gauge-label">OIL</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="oil-fill" style="background: #00ff00; height: 0%"></div>
+                        </div>
+                        <div class="gauge-value"><span id="oil-value">0</span> <span class="gauge-unit">PSI</span></div>
+                    </div>
+                </div>
+                
+                <div class="fuel-display">
+                    <div class="fuel-item">
+                        <div class="fuel-label">LEFT FUEL</div>
+                        <div><span id="left-fuel">23</span> GAL</div>
+                    </div>
+                    <div class="fuel-item">
+                        <div class="fuel-label">RIGHT FUEL</div>
+                        <div><span id="right-fuel">23</span> GAL</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panels -->
+        <div class="control-panels">
+            <!-- Flight Management Computer -->
+            <div class="control-panel fmc">
+                <div class="panel-header">FLIGHT MANAGEMENT</div>
+                
+                <div class="controls-grid">
+                    <button class="button" id="ap-button">AP</button>
+                    <button class="button" id="alt-button">ALT</button>
+                    <button class="button" id="hdg-button">HDG</button>
+                    <button class="button" id="vs-button">VS</button>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 4px;">TARGET ALT</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <button class="button" onclick="adjustTargetAltitude(-1000)">-1K</button>
+                        <span style="color: #ffffff; font-size: 10px;" id="target-altitude">3000</span>
+                        <button class="button" onclick="adjustTargetAltitude(1000)">+1K</button>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <button class="button" onclick="adjustTargetAltitude(-100)">-100</button>
+                        <button class="button" onclick="adjustTargetAltitude(100)">+100</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 4px;">TARGET HDG</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <button class="button" onclick="adjustTargetHeading(-10)">-10°</button>
+                        <span style="color: #ffffff; font-size: 10px;" id="target-heading">360°</span>
+                        <button class="button" onclick="adjustTargetHeading(10)">+10°</button>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <button class="button" onclick="adjustTargetHeading(-1)">-1°</button>
+                        <button class="button" onclick="adjustTargetHeading(1)">+1°</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Radio Panel -->
+            <div class="control-panel radio">
+                <div class="panel-header">RADIO PANEL</div>
+                
+                <div class="controls-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 12px;">
+                    <button class="button active" id="com1-select">COM1</button>
+                    <button class="button" id="com2-select">COM2</button>
+                    <button class="button" id="nav1-select">NAV1</button>
+                    <button class="button" id="nav2-select">NAV2</button>
+                </div>
+                
+                <div class="frequency-display">
+                    <div class="frequency-active" id="active-freq">118.750</div>
+                    <div class="frequency-standby" id="standby-freq">121.500</div>
+                </div>
+                
+                <div class="controls-grid-3" style="margin-bottom: 8px;">
+                    <button class="button" onclick="adjustFrequency(-1.0)">-1</button>
+                    <button class="button" onclick="adjustFrequency(-0.025)">-.025</button>
+                    <button class="button" onclick="adjustFrequency(0.025)">+.025</button>
+                </div>
+                
+                <div class="controls-grid">
+                    <button class="button" onclick="adjustFrequency(1.0)">+1</button>
+                    <button class="button" onclick="swapFrequencies()">↔</button>
+                </div>
+                
+                <div style="border: 1px solid #666; border-radius: 4px; padding: 8px; margin-top: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 4px;">TRANSPONDER</div>
+                    <div style="color: #ffffff; font-size: 10px; text-align: center; margin-bottom: 8px;" id="xpdr-code">1200</div>
+                    <div class="controls-grid-3">
+                        <button class="button" id="xpdr-mode">STBY</button>
+                        <button class="button" id="xpdr-ident">ID</button>
+                        <button class="button" onclick="toggleVfrCode()">VFR</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Control Panel -->
+            <div class="control-panel controls">
+                <div class="panel-header">AIRCRAFT CONTROLS</div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 8px;">ENGINE</div>
+                    <div class="controls-grid">
+                        <button class="button" id="engine-start">START</button>
+                        <button class="button" id="engine-stop">STOP</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 8px;">THROTTLE</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #ffffff; font-size: 10px;" id="throttle-display">0%</span>
+                        <div>
+                            <button class="button" onclick="adjustThrottle(-10)">-</button>
+                            <button class="button" onclick="adjustThrottle(10)">+</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-bottom: 8px;">SYSTEMS</div>
+                    <div class="controls-grid">
+                        <button class="button" id="fuel-pump">PUMP</button>
+                        <button class="button" id="pitot-heat">HEAT</button>
+                        <button class="button" id="landing-gear">GEAR</button>
+                        <button class="button" id="flaps">FLAPS</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Warning Panel -->
+            <div class="control-panel warnings">
+                <div class="panel-header">WARNINGS & ALERTS</div>
+                
+                <div id="warning-messages" style="min-height: 120px;">
+                    <div style="color: #00ff00; font-size: 10px; text-align: center; margin-top: 40px;">
+                        ALL SYSTEMS NORMAL
+                    </div>
+                </div>
+                
+                <div style="margin-top: 16px;">
+                    <button class="button" onclick="acknowledgeMasterWarning()">MASTER WARNING</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Flight Controls Info -->
+    <div class="controls-info">
+        <div style="color: #00ff00; margin-bottom: 4px;">FLIGHT CONTROLS:</div>
+        <div>WASD: Pitch/Bank</div>
+        <div>QE: Rudder</div>
+        <div>RF: Throttle</div>
+        <div>Space: Autopilot</div>
+        <div>G: Gear</div>
+        <div>F: Flaps</div>
+    </div>
 
     <script>
-      let speed = 0;
-      let altitude = 0;
-      let vspeed = 0;
-      let pitch = 0;
-      let bank = 0;
-      let throttle = 0;
-      let gear = "DOWN";
-      let flaps = 0;
+        // Flight simulation state
+        const flightState = {
+            airspeed: 0,
+            altitude: 1000,
+            heading: 360,
+            pitchAngle: 0,
+            bankAngle: 0,
+            verticalSpeed: 0,
+            throttlePosition: 0,
+            elevatorPosition: 0,
+            aileronPosition: 0,
+            rudderPosition: 0,
+            selectedAltitude: 3000,
+            selectedHeading: 360,
+            autopilot: {
+                engaged: false,
+                altitudeHold: false,
+                headingHold: false
+            }
+        };
 
-      const speedDisplay = document.getElementById("fc-general-speed");
-      const altitudeDisplay = document.getElementById("fc-general-altitude");
-      const vspeedDisplay = document.getElementById("fc-general-vspeed");
-      const pitchDisplay = document.getElementById("fc-general-pitch");
-      const bankDisplay = document.getElementById("fc-general-bank");
-      const gearDisplay = document.getElementById("fc-general-gear");
-      const flapsDisplay = document.getElementById("fc-general-flaps");
+        const engineState = {
+            running: false,
+            rpm: 0,
+            manifoldPressure: 29.92,
+            cylinderHeadTemp: 200,
+            exhaustGasTemp: 1200,
+            fuelFlow: 0,
+            oilPressure: 0,
+            leftFuelQty: 23,
+            rightFuelQty: 23,
+            fuelPump: false,
+            pitotHeat: false
+        };
 
-      function updateInfo() {
-        speedDisplay.textContent = Math.round(speed);
-        altitudeDisplay.textContent = Math.round(altitude);
-        vspeedDisplay.textContent = Math.round(vspeed);
-        pitchDisplay.textContent = pitch;
-        bankDisplay.textContent = bank;
-        gearDisplay.textContent = gear;
-        flapsDisplay.textContent = flaps;
-      }
+        const radioState = {
+            activeRadio: 'com1',
+            com1: { active: 118.750, standby: 121.500 },
+            com2: { active: 121.900, standby: 122.800 },
+            nav1: { active: 108.400, standby: 110.600 },
+            nav2: { active: 109.200, standby: 111.800 },
+            transponder: { code: '1200', mode: 'STBY', ident: false }
+        };
 
-      setInterval(() => {
-        speed += throttle / 150;
-        if (speed < 0) speed = 0;
+        const systemsState = {
+            gearExtended: true,
+            flapsPosition: 0
+        };
 
-        vspeed = pitch * 50; // Simple pitch-to-vspeed mapping
-        altitude += vspeed / 60; // Update altitude per second
+        // Physics constants
+        const GRAVITY = 32.174;
+        const AIRCRAFT_MASS = 2400;
+        const WING_AREA = 174;
+        const MAX_THRUST = 2400;
+        const DRAG_COEFFICIENT = 0.025;
+        const AIR_DENSITY_SEA_LEVEL = 0.002377;
 
-        if (altitude < 0) altitude = 0;
+        // Input handling
+        const keys = {};
+        let lastUpdateTime = Date.now();
 
-        updateInfo();
-      }, 100);
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            e.preventDefault();
+        });
 
-      const throttleSlider = document.getElementById("fc-general-controls-masterthrottle");
-      const throttleReading = document.getElementById("fc-general-controls-masterthrottle-throttle");
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            e.preventDefault();
+        });
 
-      throttleSlider.addEventListener("input", () => {
-        throttle = parseInt(throttleSlider.value);
-        throttleReading.textContent = throttle;
-      });
-
-      function revthrust() {
-        throttle = -100;
-        throttleSlider.value = -100;
-        throttleReading.textContent = -100;
-      }
-
-      function idlethrust() {
-        throttle = 0;
-        throttleSlider.value = 0;
-        throttleReading.textContent = 0;
-      }
-
-      function maxthrust() {
-        throttle = 100;
-        throttleSlider.value = 100;
-        throttleReading.textContent = 100;
-      }
-
-      // Joystick logic
-      const joystick = document.getElementById("joystick");
-      const container = document.getElementById("joystickContainer");
-
-      let dragging = false;
-
-      container.addEventListener("mousedown", e => { dragging = true; });
-      container.addEventListener("touchstart", e => { dragging = true; });
-
-      window.addEventListener("mouseup", () => { dragging = false; });
-      window.addEventListener("touchend", () => { dragging = false; });
-
-      window.addEventListener("mousemove", drag);
-      window.addEventListener("touchmove", drag);
-
-      function drag(e) {
-        if (!dragging) return;
-
-        const rect = container.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-        let x = clientX - rect.left - rect.width / 2;
-        let y = clientY - rect.top - rect.height / 2;
-
-        const maxRadius = rect.width / 2 - joystick.offsetWidth / 2;
-        const distance = Math.sqrt(x * x + y * y);
-        if (distance > maxRadius) {
-          const angle = Math.atan2(y, x);
-          x = Math.cos(angle) * maxRadius;
-          y = Math.sin(angle) * maxRadius;
+        // Flight physics calculations
+        function calculateAirDensity(altitude) {
+            const standardPressure = 29.92;
+            const pressureAtAltitude = standardPressure * Math.pow(1 - 0.0065 * altitude / 288.15, 5.255);
+            return AIR_DENSITY_SEA_LEVEL * (pressureAtAltitude / standardPressure);
         }
 
-        joystick.style.transform = `translate(${x}px, ${y}px)`;
-
-        bank = Math.round((x / maxRadius) * 90);
-        pitch = Math.round((-y / maxRadius) * 45); // -45 to 45 degrees
-
-        updateInfo();
-      }
-      
-      const gearReading = document.getElementById("fc-general-controls-gear");
-      
-      function toggleGear() {
-        if (altitude > 0) {
-          if (gear == "DOWN") {
-            gear = "UP";
-          } else {
-            gear = "DOWN";
-          }
+        function calculateThrust(throttlePosition, altitude) {
+            const altitudeFactor = Math.max(0.1, 1 - altitude / 30000);
+            return (throttlePosition / 100) * MAX_THRUST * altitudeFactor;
         }
+
+        function calculateDrag(airspeed, airDensity) {
+            const velocitySquared = Math.pow(airspeed * 1.688, 2);
+            const minimumDrag = 50;
+            const calculatedDrag = 0.5 * airDensity * velocitySquared * WING_AREA * DRAG_COEFFICIENT;
+            return Math.max(minimumDrag, calculatedDrag);
+        }
+
+        function calculateEngineParameters(throttlePosition, airspeed, altitude) {
+            const throttleFactor = throttlePosition / 100;
+            const altitudeFactor = Math.max(0.7, 1 - altitude / 25000);
+            
+            return {
+                rpm: Math.round(800 + (throttleFactor * 1900 * altitudeFactor)),
+                manifoldPressure: Math.round((15 + (throttleFactor * 15 * altitudeFactor)) * 100) / 100,
+                fuelFlow: Math.round(throttleFactor * 18 * altitudeFactor * 10) / 10,
+                oilPressure: Math.min(85, Math.round(25 + ((800 + (throttleFactor * 1900 * altitudeFactor) - 800) / 1900 * 60))),
+                cylinderHeadTemp: Math.round(200 + throttleFactor * 200 + Math.max(0, airspeed - 120) * 0.5),
+                exhaustGasTemp: Math.round(1200 + throttleFactor * 300)
+            };
+        }
+
+        function updateFlightPhysics(deltaTime) {
+            // Handle control inputs
+            let elevatorInput = 0;
+            let aileronInput = 0;
+            let rudderInput = 0;
+
+            if (keys['KeyW']) elevatorInput = 15;  // Pitch up
+            if (keys['KeyS']) elevatorInput = -15; // Pitch down
+            if (keys['KeyA']) aileronInput = -15;  // Bank left
+            if (keys['KeyD']) aileronInput = 15;   // Bank right
+            if (keys['KeyQ']) rudderInput = -15;   // Rudder left
+            if (keys['KeyE']) rudderInput = 15;    // Rudder right
+
+            // Throttle controls
+            if (keys['KeyR']) {
+                flightState.throttlePosition = Math.min(100, flightState.throttlePosition + 50 * deltaTime);
+            }
+            if (keys['KeyF']) {
+                flightState.throttlePosition = Math.max(0, flightState.throttlePosition - 50 * deltaTime);
+            }
+
+            // Autopilot toggle
+            if (keys['Space'] && !keys.spacePressed) {
+                keys.spacePressed = true;
+                toggleAutopilot();
+            } else if (!keys['Space']) {
+                keys.spacePressed = false;
+            }
+
+            // Gear toggle
+            if (keys['KeyG'] && !keys.gearPressed) {
+                keys.gearPressed = true;
+                toggleGear();
+            } else if (!keys['KeyG']) {
+                keys.gearPressed = false;
+            }
+
+            // Flaps toggle
+            if (keys['KeyT'] && !keys.flapsPressed) {
+                keys.flapsPressed = true;
+                toggleFlaps();
+            } else if (!keys['KeyT']) {
+                keys.flapsPressed = false;
+            }
+
+            flightState.elevatorPosition = elevatorInput;
+            flightState.aileronPosition = aileronInput;
+            flightState.rudderPosition = rudderInput;
+
+            // Calculate air density
+            const airDensity = calculateAirDensity(flightState.altitude);
+            
+            // Calculate forces
+            const thrust = calculateThrust(flightState.throttlePosition, flightState.altitude);
+            const drag = calculateDrag(flightState.airspeed, airDensity);
+            
+            // Update airspeed
+            const netThrust = thrust - drag;
+            const acceleration = netThrust / AIRCRAFT_MASS * GRAVITY;
+            flightState.airspeed = Math.max(0, flightState.airspeed + acceleration * deltaTime);
+            
+            // Update vertical speed and altitude
+            const pitchRadians = flightState.pitchAngle * Math.PI / 180;
+            const airspeedVerticalComponent = flightState.airspeed * Math.sin(pitchRadians) * 1.688;
+            flightState.verticalSpeed = airspeedVerticalComponent * 60;
+            flightState.altitude = Math.max(0, flightState.altitude + flightState.verticalSpeed * deltaTime / 60);
+            
+            // Update bank angle
+            const bankAngleResponse = flightState.aileronPosition * 2.0 * deltaTime;
+            flightState.bankAngle = Math.max(-45, Math.min(45, flightState.bankAngle + bankAngleResponse));
+            
+            // Update pitch angle
+            const pitchAngleResponse = flightState.elevatorPosition * 0.3 * deltaTime;
+            flightState.pitchAngle = Math.max(-20, Math.min(30, flightState.pitchAngle + pitchAngleResponse));
+            
+            // Update heading
+            const bankRadians = flightState.bankAngle * Math.PI / 180;
+            const airspeedKnots = Math.max(30, flightState.airspeed);
+            const turnRate = (Math.tan(bankRadians) * GRAVITY / (airspeedKnots * 1.688)) * 180 / Math.PI;
+            const rudderEffect = flightState.rudderPosition * 1.0;
+            const totalTurnRate = (turnRate + rudderEffect) * deltaTime;
+            flightState.heading = (flightState.heading + totalTurnRate + 360) % 360;
+
+            // Update engine parameters if running
+            if (engineState.running) {
+                const engineParams = calculateEngineParameters(
+                    flightState.throttlePosition,
+                    flightState.airspeed,
+                    flightState.altitude
+                );
+                Object.assign(engineState, engineParams);
+            }
+        }
+
+        // Autopilot functions
+        function toggleAutopilot() {
+            flightState.autopilot.engaged = !flightState.autopilot.engaged;
+            updateAutopilotDisplay();
+        }
+
+        function toggleAltitudeHold() {
+            flightState.autopilot.altitudeHold = !flightState.autopilot.altitudeHold;
+            if (flightState.autopilot.altitudeHold) {
+                flightState.selectedAltitude = flightState.altitude;
+            }
+            updateAutopilotDisplay();
+        }
+
+        function toggleHeadingHold() {
+            flightState.autopilot.headingHold = !flightState.autopilot.headingHold;
+            if (flightState.autopilot.headingHold) {
+                flightState.selectedHeading = flightState.heading;
+            }
+            updateAutopilotDisplay();
+        }
+
+        function adjustTargetAltitude(delta) {
+            flightState.selectedAltitude = Math.max(0, Math.min(50000, flightState.selectedAltitude + delta));
+            document.getElementById('target-altitude').textContent = flightState.selectedAltitude;
+        }
+
+        function adjustTargetHeading(delta) {
+            flightState.selectedHeading = ((flightState.selectedHeading + delta) % 360 + 360) % 360;
+            document.getElementById('target-heading').textContent = flightState.selectedHeading + '°';
+        }
+
+        // Engine controls
+        function startEngine() {
+            engineState.running = true;
+            updateEngineDisplay();
+        }
+
+        function stopEngine() {
+            engineState.running = false;
+            engineState.rpm = 0;
+            engineState.fuelFlow = 0;
+            engineState.oilPressure = 0;
+            updateEngineDisplay();
+        }
+
+        function adjustThrottle(delta) {
+            flightState.throttlePosition = Math.max(0, Math.min(100, flightState.throttlePosition + delta));
+            document.getElementById('throttle-display').textContent = Math.round(flightState.throttlePosition) + '%';
+        }
+
+        function toggleGear() {
+            systemsState.gearExtended = !systemsState.gearExtended;
+            updateSystemsDisplay();
+        }
+
+        function toggleFlaps() {
+            systemsState.flapsPosition = systemsState.flapsPosition === 0 ? 10 : systemsState.flapsPosition === 10 ? 20 : 0;
+            updateSystemsDisplay();
+        }
+
+        // Radio functions
+        function selectRadio(radio) {
+            radioState.activeRadio = radio;
+            updateRadioDisplay();
+        }
+
+        function adjustFrequency(delta) {
+            const radio = radioState[radioState.activeRadio];
+            radio.active = Math.max(108.000, Math.min(137.975, radio.active + delta));
+            updateRadioDisplay();
+        }
+
+        function swapFrequencies() {
+            const radio = radioState[radioState.activeRadio];
+            const temp = radio.active;
+            radio.active = radio.standby;
+            radio.standby = temp;
+            updateRadioDisplay();
+        }
+
+        function toggleVfrCode() {
+            radioState.transponder.code = radioState.transponder.code === '1200' ? '7000' : '1200';
+            updateRadioDisplay();
+        }
+
+        function acknowledgeMasterWarning() {
+            // Clear warning messages
+            document.getElementById('warning-messages').innerHTML = 
+                '<div style="color: #00ff00; font-size: 10px; text-align: center; margin-top: 40px;">ALL SYSTEMS NORMAL</div>';
+        }
+
+        // Display update functions
+        function updateDisplay() {
+            // Update time
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toTimeString().substr(0, 8);
+
+            // Update flight data displays
+            document.getElementById('speed-display').textContent = Math.round(flightState.airspeed);
+            document.getElementById('altitude-display').textContent = Math.round(flightState.altitude).toString().padStart(5, '0');
+            document.getElementById('heading-display').textContent = Math.round(flightState.heading).toString().padStart(3, '0') + '°';
+            
+            document.getElementById('ias-readout').textContent = Math.round(flightState.airspeed) + ' KT';
+            document.getElementById('alt-readout').textContent = Math.round(flightState.altitude) + ' FT';
+            document.getElementById('vs-readout').textContent = (flightState.verticalSpeed > 0 ? '+' : '') + Math.round(flightState.verticalSpeed) + ' FPM';
+
+            // Update navigation display
+            document.getElementById('nav-heading').textContent = Math.round(flightState.heading).toString().padStart(3, '0') + '°';
+            document.getElementById('nav-track').textContent = Math.round(flightState.heading).toString().padStart(3, '0') + '°';
+            document.getElementById('nav-groundspeed').textContent = Math.round(flightState.airspeed) + ' KT';
+
+            // Update attitude indicator
+            const attitudeElement = document.getElementById('attitude-indicator');
+            const sky = document.getElementById('sky');
+            const ground = document.getElementById('ground');
+            
+            attitudeElement.style.transform = `rotate(${-flightState.bankAngle}deg)`;
+            
+            const pitchOffset = flightState.pitchAngle * 2;
+            sky.style.height = `${50 - pitchOffset}%`;
+            ground.style.height = `${50 + pitchOffset}%`;
+
+            updateEngineDisplay();
+            updateAutopilotDisplay();
+        }
+
+        function updateEngineDisplay() {
+            document.getElementById('engine-status').textContent = engineState.running ? 'RUN' : 'STOP';
+            
+            // Update gauge values
+            document.getElementById('rpm-value').textContent = engineState.rpm;
+            document.getElementById('mp-value').textContent = engineState.manifoldPressure.toFixed(2);
+            document.getElementById('cht-value').textContent = engineState.cylinderHeadTemp;
+            document.getElementById('egt-value').textContent = engineState.exhaustGasTemp;
+            document.getElementById('fuel-value').textContent = engineState.fuelFlow.toFixed(1);
+            document.getElementById('oil-value').textContent = engineState.oilPressure;
+            
+            // Update gauge fills
+            document.getElementById('rpm-fill').style.height = (engineState.rpm / 2700 * 100) + '%';
+            document.getElementById('mp-fill').style.height = (engineState.manifoldPressure / 35 * 100) + '%';
+            document.getElementById('cht-fill').style.height = (engineState.cylinderHeadTemp / 500 * 100) + '%';
+            document.getElementById('egt-fill').style.height = (engineState.exhaustGasTemp / 1600 * 100) + '%';
+            document.getElementById('fuel-fill').style.height = (engineState.fuelFlow / 25 * 100) + '%';
+            document.getElementById('oil-fill').style.height = (engineState.oilPressure / 100 * 100) + '%';
+            
+            // Update gauge colors based on ranges
+            updateGaugeColor('rpm-fill', engineState.rpm, 1000, 2400, 2400, 2550);
+            updateGaugeColor('mp-fill', engineState.manifoldPressure, 15, 30, 30, 33);
+            updateGaugeColor('cht-fill', engineState.cylinderHeadTemp, 200, 400, 400, 450);
+            updateGaugeColor('egt-fill', engineState.exhaustGasTemp, 1000, 1400, 1400, 1500);
+            updateGaugeColor('fuel-fill', engineState.fuelFlow, 5, 20, 20, 23);
+            updateGaugeColor('oil-fill', engineState.oilPressure, 25, 85, 85, 95);
+            
+            document.getElementById('left-fuel').textContent = engineState.leftFuelQty;
+            document.getElementById('right-fuel').textContent = engineState.rightFuelQty;
+        }
+
+        function updateGaugeColor(elementId, value, greenMin, greenMax, yellowMax, redMax) {
+            const element = document.getElementById(elementId);
+            if (value >= redMax || (elementId === 'oil-fill' && value <= 25)) {
+                element.style.background = '#ff0000';
+            } else if (value >= yellowMax) {
+                element.style.background = '#ffff00';
+            } else if (value >= greenMin && value <= greenMax) {
+                element.style.background = '#00ff00';
+            } else {
+                element.style.background = '#ffffff';
+            }
+        }
+
+        function updateAutopilotDisplay() {
+            const apIndicator = document.getElementById('ap-indicator');
+            const altIndicator = document.getElementById('alt-indicator');
+            const hdgIndicator = document.getElementById('hdg-indicator');
+            
+            apIndicator.className = flightState.autopilot.engaged ? 'status-indicator active' : 'status-indicator inactive';
+            altIndicator.className = flightState.autopilot.altitudeHold ? 'status-indicator active' : 'status-indicator inactive';
+            hdgIndicator.className = flightState.autopilot.headingHold ? 'status-indicator active' : 'status-indicator inactive';
+            
+            document.getElementById('ap-button').className = flightState.autopilot.engaged ? 'button active' : 'button';
+            document.getElementById('alt-button').className = flightState.autopilot.altitudeHold ? 'button active' : 'button';
+            document.getElementById('hdg-button').className = flightState.autopilot.headingHold ? 'button active' : 'button';
+        }
+
+        function updateRadioDisplay() {
+            const radio = radioState[radioState.activeRadio];
+            document.getElementById('active-freq').textContent = radio.active.toFixed(3);
+            document.getElementById('standby-freq').textContent = radio.standby.toFixed(3);
+            document.getElementById('xpdr-code').textContent = radioState.transponder.code;
+            document.getElementById('xpdr-mode').textContent = radioState.transponder.mode;
+            
+            // Update radio selector buttons
+            ['com1', 'com2', 'nav1', 'nav2'].forEach(r => {
+                const button = document.getElementById(r + '-select');
+                button.className = r === radioState.activeRadio ? 'button active' : 'button';
+            });
+        }
+
+        function updateSystemsDisplay() {
+            document.getElementById('landing-gear').className = systemsState.gearExtended ? 'button active' : 'button';
+            document.getElementById('flaps').className = systemsState.flapsPosition > 0 ? 'button active' : 'button';
+            document.getElementById('fuel-pump').className = engineState.fuelPump ? 'button active' : 'button';
+            document.getElementById('pitot-heat').className = engineState.pitotHeat ? 'button active' : 'button';
+        }
+
+        // Autopilot logic
+        function updateAutopilot() {
+            if (flightState.autopilot.engaged) {
+                if (flightState.autopilot.altitudeHold) {
+                    const altError = flightState.selectedAltitude - flightState.altitude;
+                    const pitchCorrection = Math.max(-10, Math.min(10, altError * 0.01));
+                    flightState.pitchAngle = pitchCorrection;
+                }
+                
+                if (flightState.autopilot.headingHold) {
+                    let headingError = flightState.selectedHeading - flightState.heading;
+                    if (headingError > 180) headingError -= 360;
+                    if (headingError < -180) headingError += 360;
+                    const bankCorrection = Math.max(-20, Math.min(20, headingError * 0.1));
+                    flightState.bankAngle = bankCorrection;
+                }
+            }
+        }
+
+        // Event listeners for controls
+        document.getElementById('ap-button').addEventListener('click', toggleAutopilot);
+        document.getElementById('alt-button').addEventListener('click', toggleAltitudeHold);
+        document.getElementById('hdg-button').addEventListener('click', toggleHeadingHold);
+        document.getElementById('engine-start').addEventListener('click', startEngine);
+        document.getElementById('engine-stop').addEventListener('click', stopEngine);
         
-        updateInfo();
-      }
-      
-      const flapsSlider = document.getElementById("fc-general-controls-flaps-slider");
-      
-      flapsSlider.addEventListener("input", () => {
-        const flapsReading = parseInt(flapsSlider.value);
-        flaps = flapsReading;
+        document.getElementById('com1-select').addEventListener('click', () => selectRadio('com1'));
+        document.getElementById('com2-select').addEventListener('click', () => selectRadio('com2'));
+        document.getElementById('nav1-select').addEventListener('click', () => selectRadio('nav1'));
+        document.getElementById('nav2-select').addEventListener('click', () => selectRadio('nav2'));
+
+        document.getElementById('fuel-pump').addEventListener('click', () => {
+            engineState.fuelPump = !engineState.fuelPump;
+            updateSystemsDisplay();
+        });
         
-        updateInfo();
-      });
+        document.getElementById('pitot-heat').addEventListener('click', () => {
+            engineState.pitotHeat = !engineState.pitotHeat;
+            updateSystemsDisplay();
+        });
+
+        document.getElementById('landing-gear').addEventListener('click', toggleGear);
+        document.getElementById('flaps').addEventListener('click', toggleFlaps);
+
+        // Main simulation loop
+        function simulationLoop() {
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - lastUpdateTime) / 1000;
+            lastUpdateTime = currentTime;
+
+            if (deltaTime < 0.1) { // Prevent jumps if too much time passes
+                updateFlightPhysics(deltaTime);
+                updateAutopilot();
+            }
+            
+            updateDisplay();
+            
+            requestAnimationFrame(simulationLoop);
+        }
+
+        // Initialize and start simulation
+        updateDisplay();
+        updateRadioDisplay();
+        updateSystemsDisplay();
+        simulationLoop();
     </script>
-  </body>
+</body>
 </html>
